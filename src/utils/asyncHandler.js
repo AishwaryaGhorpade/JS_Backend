@@ -1,12 +1,14 @@
-// asyncHandler function the another function(requestHandler) as args
+// asyncHandler function takes  the another function(requestHandler) as args
 const asyncHandler=(requestHandler)=>{    
-    (req,res,next)=>{
+    return (req,res,next)=>{
         Promise.resolve(requestHandler(req,res,next))
         .catch((error)=>next.error)
 
     }
 }
-export {asyncHandler}
+export { asyncHandler }
+
+
 
 // useing try-catch
 /*  
