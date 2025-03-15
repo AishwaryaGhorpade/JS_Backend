@@ -1,4 +1,5 @@
 import multer from "multer";
+//Multer stores files in req.files as an object
 
 /*Multer is a middleware for handling multipart/form-data, which is used for uploading files.
 It provides functionality to store files either in memory (RAM) or on disk (filesystem).  */
