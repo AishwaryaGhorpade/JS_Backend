@@ -22,9 +22,6 @@ const generateAccessAndRefreshTokens=async(userId)=>{
 
 const registerUser = asyncHandler(async (req, res) => {
 
-
-    console.log(req.body)
-
     // get user details from frontend
     // validation - not empty
     // check if user already exists: username, email
@@ -64,8 +61,6 @@ const registerUser = asyncHandler(async (req, res) => {
    {
     throw new ApiError(409,"user with email or username already exist")
    }
-
-    //   console.log(req.files)
 
    // check for images, check for avatar
    const avatarLocalPath=req.files?.avatar[0]?.path;
@@ -148,11 +143,9 @@ const loginUser=asyncHandler(async (req,res)=>{
       {
         throw new ApiError(404,"user doesnot exist")
       }
-      console.log(!user)
   
       //password check
       const isPasswordValid=await user.isPasswordCorrect(password)
-    //   console.log(isPasswordValid)
 
       if(!isPasswordValid)
         {
@@ -161,11 +154,9 @@ const loginUser=asyncHandler(async (req,res)=>{
 
         //access token and refresh token
         const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id)
-        // console.log(accessToken,refreshToken)
 
         //send cookies
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-        console.log(loggedInUser)
 
         const options={
             httpOnly:true,
@@ -262,51 +253,56 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
     }
 
 })
-const changeCurrentPassword=asyncHandler(async(req,res)=>{
-    const {oldPassword,newPassword}=req.body
 
-    if(!currentPassword || !newPassword)
-    {
-        throw new ApiError(400,"Current password and new password are required")
+const changeCurrentPassword = asyncHandler(async(req, res) => {
+    const {oldPassword, newPassword} = req.body
+
+    
+
+    const user = await User.findById(req.user?._id)
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid old password")
     }
 
-    const user=await User.findById(req.user._id)
-    const isPasswordValid=await user.isPasswordCorrect(oldPassword)
+    user.password = newPassword
+    await user.save({validateBeforeSave: false})
 
-    if(!isPasswordValid)
-    {
-        throw new ApiError(401,"Old password is incorrect")
-    }
-
-    user.password=newPassword
-    await user.save({validateBeforeSave:false})
-
-    return res.status(200).json(new ApiResponse(200,{},"Password changed successfully"))
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"))
 })
 
 const getCurrentUser=asyncHandler(async(req,res)=>{
     return res.status(200).json(new ApiResponse(200,req.user,"User details"))
 })
 
-const updateAccountDetails=asyncHandler(async(req,res)=>{
-    const {fullName,email,username}=req.body
-    const user=await User.findByIdAndUpdate(
+
+const updateAccountDetails = asyncHandler(async(req, res) => {
+    const {fullName, email, username} = req.body
+
+    if (!fullName || !email || !username) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            $set:{
+            $set: {
                 fullName,
-                email:email,
-                username:username.toLowerCase()
+                username: username.toLowerCase(),
+                email: email
             }
         },
-        {
-            new:true   //return updated user details
-        }
+        {new: true}
+        
     ).select("-password -refreshToken")
 
-    return res.status(200).json(new ApiResponse(200,user,"User details updated successfully"))
-
-})
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"))
+});
 
 const updateUserAvatar=asyncHandler(async(req,res)=>{
     const avatarLocalPath=req.file?.path
@@ -447,6 +443,7 @@ const getWatchHistory = asyncHandler(async(req, res) => {
         {
             $match: {
                 _id: new mongoose.Types.ObjectId(req.user._id)
+               
             }
         },
         {
@@ -495,8 +492,6 @@ const getWatchHistory = asyncHandler(async(req, res) => {
         )
     )
 })
-
-
 
 export { 
     registerUser,
